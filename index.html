@@ -47,7 +47,7 @@ const ROLES={
 
 const KEY="werwolf-erzaehler-komplett-v1";
 
-function fresh(){return{players:[],night:1,screen:"setup",phase:null,victim:null,seerTarget:null,poisonTarget:null,healUsed:false,poisonUsed:false,lovers:[],hunterTarget:null,log:[]};}
+function fresh(){return{players:[],night:1,screen:"setup",phase:null,victim:null,seerTarget:null,poisonTarget:null,healUsed:false,poisonUsed:false,healDecision:null,poisonDecision:null,dayVote:null,lovers:[],hunterTarget:null,log:[]};}
 let S=fresh();
 try{const saved=localStorage.getItem(KEY);if(saved)S=Object.assign(fresh(),JSON.parse(saved));}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
@@ -112,24 +112,44 @@ function cupidStep(){return choices("lover",null)+`<div class="notice">Ausgewäh
 function wolfStep(){return choices("victim",S.victim)+nextButton(!S.victim);}
 function seerStep(){return choices("seer",S.seerTarget)+nextButton(!S.seerTarget);}
 function witchStep(){
-return `<div class="notice">🐺 Opfer: <b>${S.victim?esc(player(S.victim).name):"niemand"}</b></div>
-<button class="btn" onclick="healVictim()" ${S.healUsed||!S.victim?"disabled":""}>💚 Opfer retten ${S.healUsed?"✓ bereits benutzt":"1× pro Spiel"}</button>
-<div class="notice">☠️ Todestrank: ${S.poisonUsed?"<b>bereits benutzt</b>":"1× pro Spiel"}</div>
-${S.poisonUsed?"" : choices("poison",S.poisonTarget)}
-<button class="btn" onclick="poisonSelected()" ${S.poisonUsed||!S.poisonTarget?"disabled":""}>☠️ Spieler töten ${S.poisonUsed?"✓ bereits benutzt":""}</button>
-<button class="btn next" onclick="finishWitch()">Weiter →</button>`;}
+return `<div class="notice">🐺 Opfer der Werwölfe: <b>${S.victim?esc(player(S.victim).name):"niemand"}</b></div>
+<div class="grid">
+<button class="choice ${S.healDecision==="yes"?"selected":""}" onclick="chooseHealDecision("yes")">💚 Retten<small>${S.healUsed?"bereits benutzt":"Trank 1× pro Spiel"}</small></button>
+<button class="choice ${S.healDecision==="no"?"selected":""}" onclick="chooseHealDecision("no")">🚫 Nicht retten<small>Opfer sterben lassen</small></button>
+</div>
+<div class="notice">☠️ Todestrank: ${S.poisonUsed?"<b>bereits benutzt</b>":"Du kannst einmal jemanden töten."}</div>
+${S.poisonUsed?"":choices("poison",S.poisonTarget)}
+<div class="grid">
+<button class="choice ${S.poisonDecision==="yes"?"selected":""}" onclick="choosePoisonDecision("yes")" ${S.poisonUsed?"disabled":""}>☠️ Töten<small>${S.poisonUsed?"bereits benutzt":"Spieler auswählen"}</small></button>
+<button class="choice ${S.poisonDecision==="no"?"selected":""}" onclick="choosePoisonDecision("no")" ${S.poisonUsed?"disabled":""}>🚫 Niemanden töten<small>Kein Todestrank</small></button>
+</div>
+<button class="btn next" onclick="finishWitch()" ${S.healDecision?"" : "disabled"}>Weiter →</button>`;}
 function hunterStep(){return `<div class="notice">🏹 Der Jäger ist gestorben. Wähle einen lebenden Spieler, den er mitnimmt.</div>${choices("hunter",S.hunterTarget)}${nextButton(!S.hunterTarget)}`;}
 
 function choose(type,id){
 if(type==="victim")S.victim=id;
 if(type==="seer"){S.seerTarget=id;alert("🔮 "+player(id).name+" ist "+ROLES[player(id).role].name+".");}
-if(type==="poison"&&!S.poisonUsed)S.poisonTarget=id;
+if(type==="poison"&&!S.poisonUsed){S.poisonTarget=id;S.poisonDecision="yes";}
 if(type==="hunter")S.hunterTarget=id;
 if(type==="lover"){if(S.lovers.includes(id))S.lovers=S.lovers.filter(x=>String(x)!==String(id));else if(S.lovers.length<2)S.lovers.push(id);}
+if(type==="dayVote")S.dayVote=id;
 save();render();
 }
-function healVictim(){if(!S.healUsed&&S.victim){S.healUsed=true;S.victim=null;save();render();}}
-function poisonSelected(){if(!S.poisonUsed&&S.poisonTarget){S.poisonUsed=true;save();render();}}
+function chooseHealDecision(value){
+if(value==="yes"&&S.healUsed)return;
+S.healDecision=value;
+if(value==="yes"&&S.victim){S.healUsed=true;S.victim=null;}
+if(value==="no"&&S.victim===null)S.victim=null;
+save();render();
+}
+function choosePoisonDecision(value){
+if(S.poisonUsed)return;
+S.poisonDecision=value;
+if(value==="no")S.poisonTarget=null;
+save();render();
+}
+function healVictim(){chooseHealDecision("yes");}
+function poisonSelected(){choosePoisonDecision("yes");}
 
 function nextPhase(){
 if(S.phase==="hunter"){finishHunter();return;}
@@ -139,7 +159,11 @@ if(S.phase==="wolf"&&!S.victim)return;
 if(S.phase==="seer"&&!S.seerTarget)return;
 S.phase=q[i+1];if(!S.phase)finishWitch();else{save();render();}
 }
-function finishWitch(){resolveDeaths();}
+function finishWitch(){
+if(S.healDecision==="yes")S.victim=null;
+if(S.poisonDecision!=="yes")S.poisonTarget=null;
+resolveDeaths();
+}
 function resolveDeaths(){
 let dead=[];if(S.victim&&!S.healUsed)dead.push(S.victim);if(S.poisonTarget&&!dead.includes(S.poisonTarget))dead.push(S.poisonTarget);
 let changed=true;while(changed){changed=false;for(const id of [...dead]){if(S.lovers.includes(id)){const other=S.lovers.find(x=>String(x)!==String(id));if(other&&!dead.includes(other)){dead.push(other);changed=true;}}}}
@@ -157,10 +181,41 @@ function renderMorning(app){
 const dead=S.players.filter(p=>!p.alive);
 app.innerHTML=header()+`<section class="hero morning"><div class="eyebrow">☀️ Morgen</div><h1>Der Morgen graut.</h1><p class="muted">${dead.length?dead.length+" Spieler sind bisher tot.":"Niemand ist gestorben. Verdächtig ruhig."}</p></section>
 <section class="card"><h2>💀 Tote Spieler</h2>${dead.length?dead.map(p=>`<div class="death"><strong>${esc(p.name)}</strong><span>${ROLES[p.role]?.icon||""}</span></div>`).join(""):"<div class='empty muted'>Niemand ist diese Nacht gestorben.</div>"}</section>
-<section class="card"><h2>📜 Protokoll</h2>${S.log.length?S.log.slice(-10).map(x=>`<p class="muted">• ${esc(x)}</p>`).join(""):"<p class='muted'>Noch keine Ereignisse.</p>"}</section>
-<button class="btn primary" onclick="nextNight()">🌙 Nacht ${S.night+1} starten</button>`;
+<section class="card"><h2>🗳️ Dorfabstimmung</h2><p class="muted">Das Dorf entscheidet jetzt, wer am Tag sterben soll. Wähle den Spieler, der die meisten Stimmen bekommen hat, oder niemanden.</p>
+${choices("dayVote",S.dayVote)}
+<button class="btn" onclick="chooseDayNobody()">🚫 Niemanden töten</button>
+<button class="btn primary" onclick="finishDayVote()" ${S.dayVote||S.dayVote==="none"?"":"disabled"}>🗳️ Abstimmung auswerten</button></section>
+<section class="card"><h2>📜 Protokoll</h2>${S.log.length?S.log.slice(-10).map(x=>`<p class="muted">• ${esc(x)}</p>`).join(""):"<p class='muted'>Noch keine Ereignisse.</p>"}</section>`;
 }
-function nextNight(){S.night++;S.victim=null;S.seerTarget=null;S.poisonTarget=null;S.lovers=[];S.hunterTarget=null;S.screen="play";S.phase=sequence()[0]||"wolf";save();render();}
+function nextNight(){
+S.night++;S.victim=null;S.seerTarget=null;S.poisonTarget=null;S.healDecision=null;S.poisonDecision=null;S.dayVote=null;S.lovers=[];S.hunterTarget=null;
+S.screen="play";S.phase=sequence()[0]||"wolf";save();render();
+}
+function chooseDayNobody(){S.dayVote="none";save();render();}
+function finishDayVote(){
+if(!S.dayVote)return;
+if(S.dayVote!=="none"){
+ const p=player(S.dayVote);
+ if(p&&p.alive){p.alive=false;S.log.push(p.name+" wurde vom Dorf hingerichtet.");}
+ const hunter=p&&p.role==="hunter";
+ if(hunter){S.screen="play";S.phase="hunter";S.hunterTarget=null;S.dayVote=null;save();render();return;}
+ if(p&&S.lovers.includes(p.id)){
+  const other=S.lovers.find(x=>String(x)!==String(p.id));const lp=player(other);
+  if(lp&&lp.alive){lp.alive=false;S.log.push(lp.name+" ist als Liebende/r ebenfalls gestorben.");}
+ }
+}
+S.dayVote=null;
+S.screen="morning";
+S.phase=null;
+save();renderDayResult();
+}
+function renderDayResult(){
+ const app=document.getElementById("app");
+ const dead=S.players.filter(p=>!p.alive);
+ app.innerHTML=header()+`<section class="hero morning"><div class="eyebrow">🗳️ Abstimmung beendet</div><h1>${S.log[S.log.length-1]||"Das Dorf hat niemanden getötet."}</h1><p class="muted">Die Nacht kann beginnen.</p></section>
+ <section class="card"><h2>💀 Tote Spieler</h2>${dead.length?dead.map(p=>`<div class="death"><strong>${esc(p.name)}</strong><span>${ROLES[p.role]?.icon||""}</span></div>`).join(""):"<div class='empty muted'>Niemand ist tot.</div>"}</section>
+ <button class="btn primary" onclick="nextNight()">🌙 Nacht ${S.night+1} starten</button>`;
+}
 
 try{render();}catch(e){document.getElementById("app").innerHTML='<section class="hero"><div class="eyebrow">Fehler</div><h1>Der Erzähler konnte nicht starten.</h1><p class="muted">Bitte die Seite einmal neu laden.</p></section>';console.error(e);}
 </script>
