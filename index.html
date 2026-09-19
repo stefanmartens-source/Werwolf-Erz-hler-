@@ -115,15 +115,15 @@ function witchStep(){
 if(!S.healDecision){
  return `<div class="notice">🐺 Opfer der Werwölfe: <b>${S.victim?esc(player(S.victim).name):"niemand"}</b></div>
  <div class="grid">
- <button class="choice" onclick="chooseHealDecision("yes")" ${S.healUsed||!S.victim?"disabled":""}>💚 Retten<small>${S.healUsed?"bereits benutzt":"Rettungstrank 1× pro Spiel"}</small></button>
- <button class="choice" onclick="chooseHealDecision("no")">🚫 Nicht retten<small>Das Opfer sterben lassen</small></button>
+ <button class="choice" onclick="chooseHealDecision('yes')" ${S.healUsed||!S.victim?"disabled":""}>💚 Retten<small>${S.healUsed?"bereits benutzt":"Rettungstrank 1× pro Spiel"}</small></button>
+ <button class="choice" onclick="chooseHealDecision('no')">🚫 Nicht retten<small>Das Opfer sterben lassen</small></button>
  </div>`;
 }
 return `<div class="notice">${S.healDecision==="yes"?"💚 Die Hexe hat das Opfer gerettet.":"☠️ Das Werwolf-Opfer wird nicht gerettet."}</div>
 <div class="notice">☠️ Möchte die Hexe jetzt jemanden töten?</div>
 <div class="grid">
-<button class="choice ${S.poisonDecision==="yes"?"selected":""}" onclick="choosePoisonDecision("yes")" ${S.poisonUsed?"disabled":""}>☠️ Ja, töten<small>${S.poisonUsed?"Todestrank bereits benutzt":"Eine Person auswählen"}</small></button>
-<button class="choice ${S.poisonDecision==="no"?"selected":""}" onclick="choosePoisonDecision("no")" ${S.poisonUsed?"disabled":""}>🚫 Nein<small>Keinen Todestrank verwenden</small></button>
+<button class="choice ${S.poisonDecision==="yes"?"selected":""}" onclick="choosePoisonDecision('yes')" ${S.poisonUsed?"disabled":""}>☠️ Ja, töten<small>${S.poisonUsed?"Todestrank bereits benutzt":"Eine Person auswählen"}</small></button>
+<button class="choice ${S.poisonDecision==="no"?"selected":""}" onclick="choosePoisonDecision('no')" ${S.poisonUsed?"disabled":""}>🚫 Nein<small>Keinen Todestrank verwenden</small></button>
 </div>
 ${S.poisonDecision==="yes"&&!S.poisonUsed?choices("poison",S.poisonTarget):""}
 <button class="btn next" onclick="finishWitch()" ${S.poisonDecision==="yes"&&!S.poisonTarget?"disabled":""}>Weiter →</button>`;}
