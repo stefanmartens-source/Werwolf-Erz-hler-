@@ -11,8 +11,7 @@
 body{margin:0;background:radial-gradient(circle at 20% 0%,rgba(124,92,255,.28),transparent 35%),radial-gradient(circle at 100% 10%,rgba(255,79,109,.18),transparent 30%),var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",system-ui,sans-serif}
 #app{max-width:620px;min-height:100vh;margin:auto;padding:18px 16px 32px}
 .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
-.brand{font-size:20px;font-weight:900}.brand:first-letter{font-size:24px}
-.reset{width:44px;height:44px;border:0;border-radius:15px;background:rgba(255,255,255,.09);color:white;font-size:21px}
+.brand{font-size:20px;font-weight:900}.reset{width:44px;height:44px;border:0;border-radius:15px;background:rgba(255,255,255,.09);color:white;font-size:21px}
 .hero{padding:26px 20px;border-radius:28px;background:linear-gradient(145deg,#242a49,#171a2e);box-shadow:0 18px 45px rgba(0,0,0,.3);margin-bottom:16px}
 .eyebrow{text-transform:uppercase;font-size:12px;letter-spacing:1.5px;color:#c9ceef;font-weight:900}
 h1{font-size:36px;line-height:1;margin:8px 0 12px}h2{margin:0 0 6px;font-size:23px}
@@ -48,229 +47,117 @@ const ROLES={
 
 const KEY="werwolf-erzaehler-komplett-v1";
 
-function fresh(){
- return {
-  players:[],night:1,screen:"setup",phase:null,
-  victim:null,seerTarget:null,poisonTarget:null,
-  healUsed:false,poisonUsed:false,lovers:[],
-  hunterTarget:null,log:[]
- };
-}
-
+function fresh(){return{players:[],night:1,screen:"setup",phase:null,victim:null,seerTarget:null,poisonTarget:null,healUsed:false,poisonUsed:false,lovers:[],hunterTarget:null,log:[]};}
 let S=fresh();
-try{
- const saved=localStorage.getItem(KEY);
- if(saved) S=Object.assign(fresh(),JSON.parse(saved));
-}catch(e){}
-
+try{const saved=localStorage.getItem(KEY);if(saved)S=Object.assign(fresh(),JSON.parse(saved));}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 function player(id){return S.players.find(p=>String(p.id)===String(id));}
 function alive(){return S.players.filter(p=>p.alive);}
 function esc(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 
-function top(){
- return '<div class="top"><div class="brand">🌙 Werwolf Erzähler</div><button class="reset" onclick="newGame()">↺</button></div>';
-}
-
-function newGame(){
- if(confirm("Neues Spiel starten?")){S=fresh();save();render();}
-}
-
-function render(){
- const app=document.getElementById("app");
- if(S.screen==="setup") renderSetup(app);
- else if(S.screen==="roles") renderRoles(app);
- else if(S.screen==="play") renderPlay(app);
- else renderMorning(app);
-}
+function header(){return '<div class="top"><div class="brand">🌙 Werwolf Erzähler</div><button class="reset" onclick="newGame()">↺</button></div>';}
+function newGame(){if(confirm("Neues Spiel starten?")){S=fresh();save();render();}}
+function render(){const app=document.getElementById("app");if(S.screen==="setup")renderSetup(app);else if(S.screen==="roles")renderRoles(app);else if(S.screen==="play")renderPlay(app);else renderMorning(app);}
 
 function renderSetup(app){
- app.innerHTML=top()+`
- <section class="hero">
-  <div class="eyebrow">Spielleiter-Modus</div>
-  <h1>Bereit für die Nacht?</h1>
-  <p class="muted">Spieler eintragen, Rollen verteilen und die Nacht Schritt für Schritt führen.</p>
- </section>
- <section class="card">
-  <h2>👥 Spieler</h2>
-  <p class="muted">Mindestens 4 Spieler</p>
-  <div class="row"><input id="nameInput" maxlength="22" placeholder="Name eingeben"><button class="add" onclick="addPlayer()">+</button></div>
-  <div class="list">
-   ${S.players.map(p=>`<div class="player"><span>${esc(p.name)}</span><button class="x" onclick="removePlayer('${p.id}')">×</button></div>`).join("")}
-  </div>
- </section>
- <button class="btn primary" onclick="goRoles()" ${S.players.length<4?"disabled":""}>🎭 Rollen verteilen</button>
- <button class="btn" onclick="demo()">Demo mit 8 Spielern</button>`;
- document.getElementById("nameInput").addEventListener("keydown",e=>{if(e.key==="Enter")addPlayer();});
+app.innerHTML=header()+`
+<section class="hero"><div class="eyebrow">Spielleiter-Modus</div><h1>Bereit für die Nacht?</h1><p class="muted">Spieler eintragen, Rollen verteilen und die Nacht Schritt für Schritt führen.</p></section>
+<section class="card"><h2>👥 Spieler</h2><p class="muted">Mindestens 4 Spieler</p>
+<div class="row"><input id="nameInput" maxlength="22" placeholder="Name eingeben"><button class="add" onclick="addPlayer()">+</button></div>
+<div class="list">${S.players.map(p=>`<div class="player"><span>${esc(p.name)}</span><button class="x" onclick="removePlayer('${p.id}')">×</button></div>`).join("")}</div>
+</section>
+<button class="btn primary" onclick="goRoles()" ${S.players.length<4?"disabled":""}>🎭 Rollen verteilen</button>
+<button class="btn" onclick="demo()">Demo mit 8 Spielern</button>`;
+document.getElementById("nameInput").addEventListener("keydown",e=>{if(e.key==="Enter")addPlayer();});
 }
-
-function addPlayer(){
- const input=document.getElementById("nameInput"),name=input.value.trim();
- if(!name)return;
- S.players.push({id:Date.now()+"-"+Math.random(),name,role:null,alive:true});
- input.value="";save();render();
-}
+function addPlayer(){const input=document.getElementById("nameInput"),name=input.value.trim();if(!name)return;S.players.push({id:Date.now()+"-"+Math.random(),name,role:null,alive:true});input.value="";save();render();}
 function removePlayer(id){S.players=S.players.filter(p=>String(p.id)!==String(id));save();render();}
-function demo(){
- const names=["Anna","Ben","Clara","David","Emma","Felix","Greta","Hannes"];
- S.players=names.map((name,i)=>({id:i+1,name,role:null,alive:true}));
- save();render();
-}
+function demo(){const names=["Anna","Ben","Clara","David","Emma","Felix","Greta","Hannes"];S.players=names.map((name,i)=>({id:i+1,name,role:null,alive:true}));save();render();}
 function goRoles(){S.screen="roles";save();render();}
 
 function renderRoles(app){
- app.innerHTML=top()+`
- <section class="card">
-  <h2>🎭 Rollen verteilen</h2>
-  <p class="muted">Die Rollen sieht nur der Erzähler.</p>
-  ${S.players.map(p=>`
-   <div class="roleline">
-    <div><strong>${esc(p.name)}</strong><span class="pill">${p.role?ROLES[p.role].icon+" "+ROLES[p.role].name:"noch keine Rolle"}</span></div>
-    <select class="select" onchange="setRole('${p.id}',this.value)">
-     <option value="">Rolle wählen</option>
-     ${Object.keys(ROLES).map(r=>`<option value="${r}" ${p.role===r?"selected":""}>${ROLES[r].icon} ${ROLES[r].name}</option>`).join("")}
-    </select>
-   </div>`).join("")}
- </section>
- <button class="btn primary" onclick="startGame()" ${S.players.some(p=>!p.role)?"disabled":""}>🌙 Nacht 1 starten</button>`;
+app.innerHTML=header()+`
+<section class="card"><h2>🎭 Rollen verteilen</h2><p class="muted">Die Rollen sieht nur der Erzähler.</p>
+${S.players.map(p=>`<div class="roleline"><div><strong>${esc(p.name)}</strong><span class="pill">${p.role?ROLES[p.role].icon+" "+ROLES[p.role].name:"noch keine Rolle"}</span></div>
+<select class="select" onchange="setRole('${p.id}',this.value)"><option value="">Rolle wählen</option>
+${Object.keys(ROLES).map(r=>`<option value="${r}" ${p.role===r?"selected":""}>${ROLES[r].icon} ${ROLES[r].name}</option>`).join("")}
+</select></div>`).join("")}</section>
+<button class="btn primary" onclick="startGame()" ${S.players.some(p=>!p.role)?"disabled":""}>🌙 Nacht 1 starten</button>`;
 }
 function setRole(id,role){const p=player(id);if(p)p.role=role||null;save();render();}
 
 function sequence(){
- const q=[];
- if(S.night===1 && S.players.some(p=>p.alive&&p.role==="thief"))q.push("thief");
- if(S.night===1 && S.players.some(p=>p.alive&&p.role==="cupid"))q.push("cupid");
- if(S.players.some(p=>p.alive&&p.role==="wolf"))q.push("wolf");
- if(S.players.some(p=>p.alive&&p.role==="seer"))q.push("seer");
- if(S.players.some(p=>p.alive&&p.role==="witch"))q.push("witch");
- return q;
+const q=[];
+if(S.night===1&&S.players.some(p=>p.alive&&p.role==="thief"))q.push("thief");
+if(S.night===1&&S.players.some(p=>p.alive&&p.role==="cupid"))q.push("cupid");
+if(S.players.some(p=>p.alive&&p.role==="wolf"))q.push("wolf");
+if(S.players.some(p=>p.alive&&p.role==="seer"))q.push("seer");
+if(S.players.some(p=>p.alive&&p.role==="witch"))q.push("witch");
+return q;
 }
-function startGame(){
- S.screen="play";S.phase=sequence()[0]||"wolf";save();render();
-}
+function startGame(){S.screen="play";S.phase=sequence()[0]||"wolf";save();render();}
 
 function renderPlay(app){
- const phases=S.phase==="hunter"?["hunter"]:sequence();
- const idx=Math.max(0,phases.indexOf(S.phase));
- const role=ROLES[S.phase]||ROLES.wolf;
- let body="";
- if(S.phase==="thief")body=thiefStep();
- if(S.phase==="cupid")body=cupidStep();
- if(S.phase==="wolf")body=wolfStep();
- if(S.phase==="seer")body=seerStep();
- if(S.phase==="witch")body=witchStep();
- if(S.phase==="hunter")body=hunterStep();
-
- app.innerHTML=top()+`
- <div class="progress">${phases.map((x,i)=>`<div class="bar ${i<=idx?"on":""}"></div>`).join("")}</div>
- <div class="phase">Nacht ${S.night} · ${role.name}</div>
- <div class="icon">${role.icon}</div>
- <div class="question">${question(S.phase)}</div>
- <div class="hint">${hint(S.phase)}</div>
- ${body}`;
+const phases=S.phase==="hunter"?["hunter"]:sequence();const idx=Math.max(0,phases.indexOf(S.phase));const role=ROLES[S.phase]||ROLES.wolf;let body="";
+if(S.phase==="thief")body=thiefStep();if(S.phase==="cupid")body=cupidStep();if(S.phase==="wolf")body=wolfStep();if(S.phase==="seer")body=seerStep();if(S.phase==="witch")body=witchStep();if(S.phase==="hunter")body=hunterStep();
+app.innerHTML=header()+`<div class="progress">${phases.map((x,i)=>`<div class="bar ${i<=idx?"on":""}"></div>`).join("")}</div>
+<div class="phase">Nacht ${S.night} · ${role.name}</div><div class="icon">${role.icon}</div><div class="question">${question(S.phase)}</div><div class="hint">${hint(S.phase)}</div>${body}`;
 }
-
-function question(p){
- return {thief:"Dieb",cupid:"Wer sind die Liebenden?",wolf:"Wen sollen die Werwölfe töten?",seer:"Wessen Rolle willst du sehen?",witch:"Was soll die Hexe tun?",hunter:"Wen nimmt der Jäger mit?"}[p];
-}
-function hint(p){
- return {thief:"Hausregel prüfen und weiter.",cupid:"Genau zwei Spieler auswählen.",wolf:"Ein lebendes Opfer auswählen.",seer:"Die Rolle wird nur dir angezeigt.",witch:"Retten und Vergiften sind jeweils einmal möglich.",hunter:"Der Jäger nimmt einen lebenden Spieler mit."}[p];
-}
+function question(p){return{thief:"Dieb",cupid:"Wer sind die Liebenden?",wolf:"Wen sollen die Werwölfe töten?",seer:"Wessen Rolle willst du sehen?",witch:"Was soll die Hexe tun?",hunter:"Wen nimmt der Jäger mit?"}[p];}
+function hint(p){return{thief:"Hausregel prüfen und weiter.",cupid:"Genau zwei Spieler auswählen.",wolf:"Ein lebendes Opfer auswählen.",seer:"Die Rolle wird nur dir angezeigt.",witch:"Retten und Vergiften sind jeweils einmal möglich.",hunter:"Der Jäger nimmt einen lebenden Spieler mit."}[p];}
 function nextButton(disabled){return `<button class="btn next" onclick="nextPhase()" ${disabled?"disabled":""}>Weiter →</button>`;}
-function choices(type,selected,filter){
- const list=alive().filter(filter||(()=>true));
- return `<div class="grid">${list.map(p=>`<button class="choice ${String(selected)===String(p.id)?"selected":""}" onclick="choose('${type}','${p.id}')">${esc(p.name)}<small>${ROLES[p.role]?.icon||""} Rolle geheim</small></button>`).join("")}</div>`;
-}
-
+function choices(type,selected,filter){const list=alive().filter(filter||(()=>true));return `<div class="grid">${list.map(p=>`<button class="choice ${String(selected)===String(p.id)?"selected":""}" onclick="choose('${type}','${p.id}')">${esc(p.name)}<small>${ROLES[p.role]?.icon||""} Rolle geheim</small></button>`).join("")}</div>`;}
 function thiefStep(){return `<div class="notice">🃏 Der Dieb ist aktiv. Prüfe eure Hausregel für die Karten und führe sie außerhalb der App aus.</div>${nextButton(false)}`;}
 function cupidStep(){return choices("lover",null)+`<div class="notice">Ausgewählt: <b>${S.lovers.length}/2</b></div>${nextButton(S.lovers.length!==2)}`;}
 function wolfStep(){return choices("victim",S.victim)+nextButton(!S.victim);}
 function seerStep(){return choices("seer",S.seerTarget)+nextButton(!S.seerTarget);}
-function witchStep(){
- return `<div class="notice">🐺 Opfer: <b>${S.victim?esc(player(S.victim).name):"niemand"}</b></div>
- <button class="btn" onclick="healVictim()" ${S.healUsed||!S.victim?"disabled":""}>💚 Opfer retten ${S.healUsed?"✓ bereits benutzt":""}</button>
- ${choices("poison",S.poisonTarget)}
- <button class="btn next" onclick="finishWitch()">Weiter →</button>`;
-}
+function witchStep(){return `<div class="notice">🐺 Opfer: <b>${S.victim?esc(player(S.victim).name):"niemand"}</b></div>
+<button class="btn" onclick="healVictim()" ${S.healUsed||!S.victim?"disabled":""}>💚 Opfer retten ${S.healUsed?"✓ bereits benutzt":""}</button>
+${choices("poison",S.poisonTarget)}<button class="btn next" onclick="finishWitch()">Weiter →</button>`;}
 function hunterStep(){return `<div class="notice">🏹 Der Jäger ist gestorben. Wähle einen lebenden Spieler, den er mitnimmt.</div>${choices("hunter",S.hunterTarget)}${nextButton(!S.hunterTarget)}`;}
 
 function choose(type,id){
- if(type==="victim")S.victim=id;
- if(type==="seer"){S.seerTarget=id;alert("🔮 "+player(id).name+" ist "+ROLES[player(id).role].name+".");}
- if(type==="poison" && !S.poisonUsed)S.poisonTarget=id;
- if(type==="hunter")S.hunterTarget=id;
- if(type==="lover"){
-  if(S.lovers.includes(id))S.lovers=S.lovers.filter(x=>String(x)!==String(id));
-  else if(S.lovers.length<2)S.lovers.push(id);
- }
- save();render();
+if(type==="victim")S.victim=id;
+if(type==="seer"){S.seerTarget=id;alert("🔮 "+player(id).name+" ist "+ROLES[player(id).role].name+".");}
+if(type==="poison"&&!S.poisonUsed)S.poisonTarget=id;
+if(type==="hunter")S.hunterTarget=id;
+if(type==="lover"){if(S.lovers.includes(id))S.lovers=S.lovers.filter(x=>String(x)!==String(id));else if(S.lovers.length<2)S.lovers.push(id);}
+save();render();
 }
 function healVictim(){if(!S.healUsed&&S.victim){S.healUsed=true;S.victim=null;save();render();}}
 
 function nextPhase(){
- const q=sequence();
- const i=q.indexOf(S.phase);
- if(S.phase==="cupid"&&S.lovers.length!==2)return;
- if(S.phase==="wolf"&&!S.victim)return;
- if(S.phase==="seer"&&!S.seerTarget)return;
- S.phase=q[i+1];
- if(!S.phase)finishWitch();else{save();render();}
+if(S.phase==="hunter"){finishHunter();return;}
+const q=sequence();const i=q.indexOf(S.phase);
+if(S.phase==="cupid"&&S.lovers.length!==2)return;
+if(S.phase==="wolf"&&!S.victim)return;
+if(S.phase==="seer"&&!S.seerTarget)return;
+S.phase=q[i+1];if(!S.phase)finishWitch();else{save();render();}
 }
 function finishWitch(){if(S.poisonTarget&&!S.poisonUsed)S.poisonUsed=true;resolveDeaths();}
-
 function resolveDeaths(){
- let dead=[];
- if(S.victim&&!S.healUsed)dead.push(S.victim);
- if(S.poisonTarget&&!dead.includes(S.poisonTarget))dead.push(S.poisonTarget);
-
- let changed=true;
- while(changed){
-  changed=false;
-  for(const id of [...dead]){
-   if(S.lovers.includes(id)){
-    const other=S.lovers.find(x=>String(x)!==String(id));
-    if(other&&!dead.includes(other)){dead.push(other);changed=true;}
-   }
-  }
- }
- dead.forEach(id=>{
-  const p=player(id);
-  if(p&&p.alive){p.alive=false;S.log.push(p.name+" ist gestorben.");}
- });
-
- const hunter=dead.find(id=>player(id)?.role==="hunter");
- if(hunter){S.screen="play";S.phase="hunter";S.hunterTarget=null;save();render();return;}
- S.screen="morning";S.phase=null;save();render();
+let dead=[];if(S.victim&&!S.healUsed)dead.push(S.victim);if(S.poisonTarget&&!dead.includes(S.poisonTarget))dead.push(S.poisonTarget);
+let changed=true;while(changed){changed=false;for(const id of [...dead]){if(S.lovers.includes(id)){const other=S.lovers.find(x=>String(x)!==String(id));if(other&&!dead.includes(other)){dead.push(other);changed=true;}}}}
+dead.forEach(id=>{const p=player(id);if(p&&p.alive){p.alive=false;S.log.push(p.name+" ist gestorben.");}});
+const hunter=dead.find(id=>player(id)?.role==="hunter");
+if(hunter){S.screen="play";S.phase="hunter";S.hunterTarget=null;save();render();return;}
+S.screen="morning";S.phase=null;save();render();
 }
-
 function finishHunter(){
- if(!S.hunterTarget)return;
- const target=player(S.hunterTarget);
- if(target&&target.alive){target.alive=false;S.log.push(target.name+" wurde vom Jäger mitgenommen.");}
- if(S.lovers.includes(S.hunterTarget)){
-  const other=S.lovers.find(x=>String(x)!==String(S.hunterTarget));
-  const p=player(other);
-  if(p&&p.alive){p.alive=false;S.log.push(p.name+" ist als Liebende/r ebenfalls gestorben.");}
- }
- S.hunterTarget=null;S.screen="morning";S.phase=null;save();render();
+if(!S.hunterTarget)return;const target=player(S.hunterTarget);if(target&&target.alive){target.alive=false;S.log.push(target.name+" wurde vom Jäger mitgenommen.");}
+if(S.lovers.includes(S.hunterTarget)){const other=S.lovers.find(x=>String(x)!==String(S.hunterTarget));const p=player(other);if(p&&p.alive){p.alive=false;S.log.push(p.name+" ist als Liebende/r ebenfalls gestorben.");}}
+S.hunterTarget=null;S.screen="morning";S.phase=null;save();render();
 }
-
 function renderMorning(app){
- const dead=S.players.filter(p=>!p.alive);
- app.innerHTML=top()+`
- <section class="hero morning"><div class="eyebrow">☀️ Morgen</div><h1>Der Morgen graut.</h1><p class="muted">${dead.length?dead.length+" Spieler sind bisher tot.":"Niemand ist gestorben. Verdächtig ruhig."}</p></section>
- <section class="card"><h2>💀 Tote Spieler</h2>
- ${dead.length?dead.map(p=>`<div class="death"><strong>${esc(p.name)}</strong><span>${ROLES[p.role]?.icon||""}</span></div>`).join(""):"<div class='empty muted'>Niemand ist diese Nacht gestorben.</div>"}
- </section>
- <section class="card"><h2>📜 Protokoll</h2>${S.log.length?S.log.slice(-10).map(x=>`<p class="muted">• ${esc(x)}</p>`).join(""):"<p class='muted'>Noch keine Ereignisse.</p>"}</section>
- <button class="btn primary" onclick="nextNight()">🌙 Nacht ${S.night+1} starten</button>`;
+const dead=S.players.filter(p=>!p.alive);
+app.innerHTML=header()+`<section class="hero morning"><div class="eyebrow">☀️ Morgen</div><h1>Der Morgen graut.</h1><p class="muted">${dead.length?dead.length+" Spieler sind bisher tot.":"Niemand ist gestorben. Verdächtig ruhig."}</p></section>
+<section class="card"><h2>💀 Tote Spieler</h2>${dead.length?dead.map(p=>`<div class="death"><strong>${esc(p.name)}</strong><span>${ROLES[p.role]?.icon||""}</span></div>`).join(""):"<div class='empty muted'>Niemand ist diese Nacht gestorben.</div>"}</section>
+<section class="card"><h2>📜 Protokoll</h2>${S.log.length?S.log.slice(-10).map(x=>`<p class="muted">• ${esc(x)}</p>`).join(""):"<p class='muted'>Noch keine Ereignisse.</p>"}</section>
+<button class="btn primary" onclick="nextNight()">🌙 Nacht ${S.night+1} starten</button>`;
 }
-function nextNight(){
- S.night++;S.victim=null;S.seerTarget=null;S.poisonTarget=null;S.healUsed=false;S.lovers=[];S.hunterTarget=null;
- S.screen="play";S.phase=sequence()[0]||"wolf";save();render();
-}
+function nextNight(){S.night++;S.victim=null;S.seerTarget=null;S.poisonTarget=null;S.healUsed=false;S.lovers=[];S.hunterTarget=null;S.screen="play";S.phase=sequence()[0]||"wolf";save();render();}
 
-render();
+try{render();}catch(e){document.getElementById("app").innerHTML='<section class="hero"><div class="eyebrow">Fehler</div><h1>Der Erzähler konnte nicht starten.</h1><p class="muted">Bitte die Seite einmal neu laden.</p></section>';console.error(e);}
 </script>
 </body>
 </html>
