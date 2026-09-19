@@ -47,7 +47,7 @@ const ROLES={
 
 const KEY="werwolf-erzaehler-komplett-v1";
 
-function fresh(){return{players:[],night:1,screen:"setup",phase:null,victim:null,seerTarget:null,poisonTarget:null,healUsed:false,poisonUsed:false,healDecision:null,poisonDecision:null,dayVote:null,lovers:[],hunterTarget:null,log:[]};}
+function fresh(){return{players:[],night:1,screen:"setup",phase:null,victim:null,seerTarget:null,poisonTarget:null,healUsed:false,poisonUsed:false,healDecision:null,poisonDecision:null,dayVote:null,winner:null,lovers:[],hunterTarget:null,log:[]};}
 let S=fresh();
 try{const saved=localStorage.getItem(KEY);if(saved)S=Object.assign(fresh(),JSON.parse(saved));}catch(e){}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
@@ -57,7 +57,7 @@ function esc(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",
 
 function header(){return '<div class="top"><div class="brand">🌙 Werwolf Erzähler</div><button class="reset" onclick="newGame()">↺</button></div>';}
 function newGame(){if(confirm("Neues Spiel starten?")){S=fresh();save();render();}}
-function render(){const app=document.getElementById("app");if(S.screen==="setup")renderSetup(app);else if(S.screen==="roles")renderRoles(app);else if(S.screen==="play")renderPlay(app);else renderMorning(app);}
+function render(){const app=document.getElementById("app");if(S.screen==="setup")renderSetup(app);else if(S.screen==="roles")renderRoles(app);else if(S.screen==="play")renderPlay(app);else if(S.screen==="winner")renderWinner(app);else renderMorning(app);}
 
 function renderSetup(app){
 app.innerHTML=header()+`
@@ -168,18 +168,52 @@ if(S.healDecision==="yes")S.victim=null;
 if(S.poisonDecision!=="yes")S.poisonTarget=null;
 resolveDeaths();
 }
+function getWinner(){
+ const wolves=alive().filter(p=>p.role==="wolf");
+ const others=alive().filter(p=>p.role!=="wolf");
+ if(wolves.length===0)return "village";
+ if(wolves.length>=others.length)return "wolves";
+ return null;
+}
+function showWinner(winner){
+ S.winner=winner;S.screen="winner";S.phase=null;save();render();
+}
+function checkWinner(){
+ const winner=getWinner();
+ if(winner){showWinner(winner);return true;}
+ return false;
+}
+function renderWinner(app){
+ const wolves=S.winner==="wolves";
+ app.innerHTML=header()+`
+ <section class="hero morning">
+  <div class="eyebrow">${wolves?"🐺 Spielende":"🏡 Spielende"}</div>
+  <h1>${wolves?"Die Werwölfe haben gewonnen!":"Das Dorf hat gewonnen!"}</h1>
+  <p class="muted">${wolves?"Die Werwölfe sind mindestens so zahlreich wie alle anderen lebenden Spieler.":"Es lebt kein Werwolf mehr. Das Dorf hat die Nacht überstanden."}</p>
+ </section>
+ <section class="card">
+  <h2>🏁 Das Spiel ist vorbei</h2>
+  <p class="muted">Alle Rollen dürfen jetzt aufgedeckt werden.</p>
+  ${S.players.map(p=>`<div class="death"><strong>${esc(p.name)}</strong><span>${ROLES[p.role]?.icon||""} ${ROLES[p.role]?.name||""}</span></div>`).join("")}
+ </section>
+ <button class="btn primary" onclick="newGame()">🔄 Neues Spiel</button>`;
+}
+
 function resolveDeaths(){
 let dead=[];if(S.victim&&!S.healUsed)dead.push(S.victim);if(S.poisonTarget&&!dead.includes(S.poisonTarget))dead.push(S.poisonTarget);
 let changed=true;while(changed){changed=false;for(const id of [...dead]){if(S.lovers.includes(id)){const other=S.lovers.find(x=>String(x)!==String(id));if(other&&!dead.includes(other)){dead.push(other);changed=true;}}}}
 dead.forEach(id=>{const p=player(id);if(p&&p.alive){p.alive=false;S.log.push(p.name+" ist gestorben.");}});
 const hunter=dead.find(id=>player(id)?.role==="hunter");
 if(hunter){S.screen="play";S.phase="hunter";S.hunterTarget=null;save();render();return;}
+if(checkWinner())return;
 S.screen="morning";S.phase=null;save();render();
 }
 function finishHunter(){
 if(!S.hunterTarget)return;const target=player(S.hunterTarget);if(target&&target.alive){target.alive=false;S.log.push(target.name+" wurde vom Jäger mitgenommen.");}
 if(S.lovers.includes(S.hunterTarget)){const other=S.lovers.find(x=>String(x)!==String(S.hunterTarget));const p=player(other);if(p&&p.alive){p.alive=false;S.log.push(p.name+" ist als Liebende/r ebenfalls gestorben.");}}
-S.hunterTarget=null;S.screen="morning";S.phase=null;save();render();
+S.hunterTarget=null;
+if(checkWinner())return;
+S.screen="morning";S.phase=null;save();render();
 }
 function renderMorning(app){
 const dead=S.players.filter(p=>!p.alive);
@@ -209,6 +243,7 @@ if(S.dayVote!=="none"){
  }
 }
 S.dayVote=null;
+if(checkWinner())return;
 S.screen="morning";
 S.phase=null;
 save();renderDayResult();
