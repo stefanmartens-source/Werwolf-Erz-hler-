@@ -111,9 +111,13 @@ function thiefStep(){return `<div class="notice">🃏 Der Dieb ist aktiv. Prüfe
 function cupidStep(){return choices("lover",null)+`<div class="notice">Ausgewählt: <b>${S.lovers.length}/2</b></div>${nextButton(S.lovers.length!==2)}`;}
 function wolfStep(){return choices("victim",S.victim)+nextButton(!S.victim);}
 function seerStep(){return choices("seer",S.seerTarget)+nextButton(!S.seerTarget);}
-function witchStep(){return `<div class="notice">🐺 Opfer: <b>${S.victim?esc(player(S.victim).name):"niemand"}</b></div>
-<button class="btn" onclick="healVictim()" ${S.healUsed||!S.victim?"disabled":""}>💚 Opfer retten ${S.healUsed?"✓ bereits benutzt":""}</button>
-${choices("poison",S.poisonTarget)}<button class="btn next" onclick="finishWitch()">Weiter →</button>`;}
+function witchStep(){
+return `<div class="notice">🐺 Opfer: <b>${S.victim?esc(player(S.victim).name):"niemand"}</b></div>
+<button class="btn" onclick="healVictim()" ${S.healUsed||!S.victim?"disabled":""}>💚 Opfer retten ${S.healUsed?"✓ bereits benutzt":"1× pro Spiel"}</button>
+<div class="notice">☠️ Todestrank: ${S.poisonUsed?"<b>bereits benutzt</b>":"1× pro Spiel"}</div>
+${S.poisonUsed?"" : choices("poison",S.poisonTarget)}
+<button class="btn" onclick="poisonSelected()" ${S.poisonUsed||!S.poisonTarget?"disabled":""}>☠️ Spieler töten ${S.poisonUsed?"✓ bereits benutzt":""}</button>
+<button class="btn next" onclick="finishWitch()">Weiter →</button>`;}
 function hunterStep(){return `<div class="notice">🏹 Der Jäger ist gestorben. Wähle einen lebenden Spieler, den er mitnimmt.</div>${choices("hunter",S.hunterTarget)}${nextButton(!S.hunterTarget)}`;}
 
 function choose(type,id){
@@ -125,6 +129,7 @@ if(type==="lover"){if(S.lovers.includes(id))S.lovers=S.lovers.filter(x=>String(x
 save();render();
 }
 function healVictim(){if(!S.healUsed&&S.victim){S.healUsed=true;S.victim=null;save();render();}}
+function poisonSelected(){if(!S.poisonUsed&&S.poisonTarget){S.poisonUsed=true;save();render();}}
 
 function nextPhase(){
 if(S.phase==="hunter"){finishHunter();return;}
@@ -134,7 +139,7 @@ if(S.phase==="wolf"&&!S.victim)return;
 if(S.phase==="seer"&&!S.seerTarget)return;
 S.phase=q[i+1];if(!S.phase)finishWitch();else{save();render();}
 }
-function finishWitch(){if(S.poisonTarget&&!S.poisonUsed)S.poisonUsed=true;resolveDeaths();}
+function finishWitch(){resolveDeaths();}
 function resolveDeaths(){
 let dead=[];if(S.victim&&!S.healUsed)dead.push(S.victim);if(S.poisonTarget&&!dead.includes(S.poisonTarget))dead.push(S.poisonTarget);
 let changed=true;while(changed){changed=false;for(const id of [...dead]){if(S.lovers.includes(id)){const other=S.lovers.find(x=>String(x)!==String(id));if(other&&!dead.includes(other)){dead.push(other);changed=true;}}}}
@@ -155,7 +160,7 @@ app.innerHTML=header()+`<section class="hero morning"><div class="eyebrow">☀�
 <section class="card"><h2>📜 Protokoll</h2>${S.log.length?S.log.slice(-10).map(x=>`<p class="muted">• ${esc(x)}</p>`).join(""):"<p class='muted'>Noch keine Ereignisse.</p>"}</section>
 <button class="btn primary" onclick="nextNight()">🌙 Nacht ${S.night+1} starten</button>`;
 }
-function nextNight(){S.night++;S.victim=null;S.seerTarget=null;S.poisonTarget=null;S.healUsed=false;S.lovers=[];S.hunterTarget=null;S.screen="play";S.phase=sequence()[0]||"wolf";save();render();}
+function nextNight(){S.night++;S.victim=null;S.seerTarget=null;S.poisonTarget=null;S.lovers=[];S.hunterTarget=null;S.screen="play";S.phase=sequence()[0]||"wolf";save();render();}
 
 try{render();}catch(e){document.getElementById("app").innerHTML='<section class="hero"><div class="eyebrow">Fehler</div><h1>Der Erzähler konnte nicht starten.</h1><p class="muted">Bitte die Seite einmal neu laden.</p></section>';console.error(e);}
 </script>
