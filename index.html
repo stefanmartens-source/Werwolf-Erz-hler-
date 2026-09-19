@@ -112,18 +112,22 @@ function cupidStep(){return choices("lover",null)+`<div class="notice">Ausgewäh
 function wolfStep(){return choices("victim",S.victim)+nextButton(!S.victim);}
 function seerStep(){return choices("seer",S.seerTarget)+nextButton(!S.seerTarget);}
 function witchStep(){
-return `<div class="notice">🐺 Opfer der Werwölfe: <b>${S.victim?esc(player(S.victim).name):"niemand"}</b></div>
+if(!S.healDecision){
+ return `<div class="notice">🐺 Opfer der Werwölfe: <b>${S.victim?esc(player(S.victim).name):"niemand"}</b></div>
+ <div class="grid">
+ <button class="choice" onclick="chooseHealDecision("yes")" ${S.healUsed||!S.victim?"disabled":""}>💚 Retten<small>${S.healUsed?"bereits benutzt":"Rettungstrank 1× pro Spiel"}</small></button>
+ <button class="choice" onclick="chooseHealDecision("no")">🚫 Nicht retten<small>Das Opfer sterben lassen</small></button>
+ </div>`;
+}
+return `<div class="notice">${S.healDecision==="yes"?"💚 Die Hexe hat das Opfer gerettet.":"☠️ Das Werwolf-Opfer wird nicht gerettet."}</div>
+<div class="notice">☠️ Möchte die Hexe jetzt jemanden töten?</div>
 <div class="grid">
-<button class="choice ${S.healDecision==="yes"?"selected":""}" onclick="chooseHealDecision("yes")">💚 Retten<small>${S.healUsed?"bereits benutzt":"Trank 1× pro Spiel"}</small></button>
-<button class="choice ${S.healDecision==="no"?"selected":""}" onclick="chooseHealDecision("no")">🚫 Nicht retten<small>Opfer sterben lassen</small></button>
+<button class="choice ${S.poisonDecision==="yes"?"selected":""}" onclick="choosePoisonDecision("yes")" ${S.poisonUsed?"disabled":""}>☠️ Ja, töten<small>${S.poisonUsed?"Todestrank bereits benutzt":"Eine Person auswählen"}</small></button>
+<button class="choice ${S.poisonDecision==="no"?"selected":""}" onclick="choosePoisonDecision("no")" ${S.poisonUsed?"disabled":""}>🚫 Nein<small>Keinen Todestrank verwenden</small></button>
 </div>
-<div class="notice">☠️ Todestrank: ${S.poisonUsed?"<b>bereits benutzt</b>":"Du kannst einmal jemanden töten."}</div>
-${S.poisonUsed?"":choices("poison",S.poisonTarget)}
-<div class="grid">
-<button class="choice ${S.poisonDecision==="yes"?"selected":""}" onclick="choosePoisonDecision("yes")" ${S.poisonUsed?"disabled":""}>☠️ Töten<small>${S.poisonUsed?"bereits benutzt":"Spieler auswählen"}</small></button>
-<button class="choice ${S.poisonDecision==="no"?"selected":""}" onclick="choosePoisonDecision("no")" ${S.poisonUsed?"disabled":""}>🚫 Niemanden töten<small>Kein Todestrank</small></button>
-</div>
-<button class="btn next" onclick="finishWitch()" ${S.healDecision?"" : "disabled"}>Weiter →</button>`;}
+${S.poisonDecision==="yes"&&!S.poisonUsed?choices("poison",S.poisonTarget):""}
+<button class="btn next" onclick="finishWitch()" ${S.poisonDecision==="yes"&&!S.poisonTarget?"disabled":""}>Weiter →</button>`;}
+
 function hunterStep(){return `<div class="notice">🏹 Der Jäger ist gestorben. Wähle einen lebenden Spieler, den er mitnimmt.</div>${choices("hunter",S.hunterTarget)}${nextButton(!S.hunterTarget)}`;}
 
 function choose(type,id){
